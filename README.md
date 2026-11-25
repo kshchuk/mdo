@@ -1,7 +1,5 @@
 # mdo — method of discrete singularities
 
-**English** · [Українська](README.uk.md)
-
 A small Python library implementing the **method of discrete singularities** (MDS, Ukrainian «МДО»), also
 known as the discrete vortex method, for 2D potential flow of an ideal incompressible fluid around a thin
 obstacle (an open contour). It covers two problems from the course «Technologies of Numerical Modelling»
