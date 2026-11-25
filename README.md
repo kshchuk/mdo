@@ -5,10 +5,10 @@ transliterated Ukrainian abbreviation), also known as the discrete vortex method
 of an ideal incompressible fluid around a thin obstacle (an open contour). It covers two problems from
 the course «Technologies of Numerical Modelling» (Taras Shevchenko National University of Kyiv):
 
-- **Lab 1 — steady flow** around a contour with a prescribed circulation Γ0: bound vortices on the contour,
+- **Ex 1 — steady flow** around a contour with a prescribed circulation Γ0: bound vortices on the contour,
   collocation points between them, a linear system for the vortex strengths, velocity, potential φ and
   stream function ψ fields.
-- **Lab 2 — unsteady separated flow**: at every time step the end (and corner) vortices separate and become
+- **Ex 2 — unsteady separated flow**: at every time step the end (and corner) vortices separate and become
   free vortices that are carried by the flow; the wake develops into a Kármán vortex street.
 
 ## Installation
