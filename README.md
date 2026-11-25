@@ -1,9 +1,9 @@
 # mdo — method of discrete singularities
 
-A small Python library implementing the **method of discrete singularities** (MDS, Ukrainian «МДО»), also
-known as the discrete vortex method, for 2D potential flow of an ideal incompressible fluid around a thin
-obstacle (an open contour). It covers two problems from the course «Technologies of Numerical Modelling»
-(Taras Shevchenko National University of Kyiv):
+A small Python library implementing the **method of discrete singularities** (MDS; `mdo` is the
+transliterated Ukrainian abbreviation), also known as the discrete vortex method, for 2D potential flow
+of an ideal incompressible fluid around a thin obstacle (an open contour). It covers two problems from
+the course «Technologies of Numerical Modelling» (Taras Shevchenko National University of Kyiv):
 
 - **Lab 1 — steady flow** around a contour with a prescribed circulation Γ0: bound vortices on the contour,
   collocation points between them, a linear system for the vortex strengths, velocity, potential φ and
@@ -55,6 +55,27 @@ L_shape = Contour.polyline([(0.5, 0.5), (-0.5, 0.5), (-0.5, -0.5)], 31)   # sepa
 ```
 
 A complete, executed example is in [`examples/demo.ipynb`](examples/demo.ipynb).
+
+## Screenshots
+
+Steady flow around a semicircle (M = 80, Γ0 = 1): velocity field, |V| = const, potential φ (transformed
+formula, a single branch cut) and stream function ψ.
+
+![Steady flow](docs/images/steady.png)
+
+Contour discretisation: bound vortices with their δ-circles, collocation points, normals, separation points.
+
+![Contour](docs/images/contour.png)
+
+Unsteady flow, α = 0: the wake of free vortices turns into a Kármán vortex street.
+
+![Wake](docs/images/wake.png)
+
+Fields at t = 80, with all free vortices included.
+
+![Unsteady fields](docs/images/unsteady.png)
+
+The figures are regenerated with `python docs/make_figures.py`.
 
 ## API overview
 

@@ -1,8 +1,4 @@
-"""Контур перешкоди L_d: точки дискретних особливостей, колокації, нормалі, точки відриву.
-
-Посилання: [П] — навчальний посібник ТЧМ, §7.1.2, §7.2.2 (дискретизація), §7.2.4 (непроникнення
-для рухомих точок), с. 133 (δ = L/(2M)).
-"""
+"""Obstacle contour: discrete vortex points, collocation points, normals, separation points."""
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -10,15 +6,14 @@ import numpy as np
 
 @dataclass
 class Contour:
-    """Розімкнений контур з M дискретними вихорами і M − 1 колокаціями.
+    """Open contour with M discrete vortices and M − 1 collocation points.
 
-    x0, y0      — точки дискретних особливостей ω0j (обхід — від першої до останньої;
-                  область течії ліворуч від напрямку обходу);
-    xc, yc      — точки колокації, nx, ny — одиничні нормалі в них;
-    separation  — індекси точок відриву (кінці й кутові точки) для лаб. №2;
-    delta       — параметр регуляризації δ;
-    L           — довжина контуру;
-    kind, arc   — «arc» для дуги кола (тоді arc = (cx, cy, R, t0, t1)) або «polyline».
+    x0, y0      — vortex points ω0j (ordered; the flow domain is to the left of the traversal);
+    xc, yc      — collocation points; nx, ny — unit normals at them;
+    separation  — indices of separation points (ends and corners) used in the unsteady problem;
+    delta       — regularisation radius δ;
+    L           — contour length;
+    kind, arc   — "arc" for a circular arc (then arc = (cx, cy, R, t0, t1)) or "polyline".
     """
     x0: np.ndarray
     y0: np.ndarray
@@ -32,34 +27,34 @@ class Contour:
     kind: str = "polyline"
     arc: tuple = field(default=None, repr=False)
 
-    # ------------------------------------------------------------------ властивості
+    # ------------------------------------------------------------------ properties
     @property
     def M(self):
         return len(self.x0)
 
     @property
     def ell(self):
-        """Довжини хорд між сусідніми вихорами."""
+        """Chord lengths between neighbouring vortices."""
         return np.hypot(np.diff(self.x0), np.diff(self.y0))
 
     @property
     def h(self):
-        """Середній крок між вихорами вздовж контуру."""
+        """Mean spacing between vortices along the contour."""
         return self.L / (self.M - 1)
 
     @property
     def size(self):
-        """Розмір перешкоди — найбільша відстань між її точками."""
+        """Obstacle size — the largest distance between its points."""
         d = np.hypot(self.x0[:, None] - self.x0[None, :], self.y0[:, None] - self.y0[None, :])
         return d.max()
 
-    # ------------------------------------------------------------------ конструктори
+    # ------------------------------------------------------------------ constructors
     @classmethod
     def arc_of_circle(cls, center, R, t0, t1, M, delta=None):
-        """Дуга кола ω(t) = c + R e^{it}, t від t0 до t1 (t0 < t1 — проти год. стрілки).
+        """Circular arc ω(t) = c + R e^{it}, t from t0 to t1 (t0 < t1 — counter-clockwise).
 
-        Колокації — на самій дузі посередині між вихорами, нормалі — точні, до центру кола
-        (як у лаб. №1 і №2 для півкола). δ за замовчуванням L/(2M) [П, с. 133].
+        Collocation points lie on the arc midway (in t) between vortices; normals are exact and point to
+        the centre. Default δ = L/(2M).
         """
         cx, cy = center
         t = np.linspace(t0, t1, M)
@@ -73,22 +68,22 @@ class Contour:
 
     @classmethod
     def semicircle(cls, M, R=0.5, delta=None):
-        """Варіант «С»: півколо розміру 2R = 1, відкрите праворуч, центроване в нулі."""
+        """Semicircle of size 2R = 1, open to the right, centred at the origin ("C" shape)."""
         return cls.arc_of_circle((R / 2, 0.0), R, np.pi / 2, 3 * np.pi / 2, M, delta)
 
     @classmethod
     def from_points(cls, x0, y0, separation=None, delta=None):
-        """Контур з готових точок; колокації — середини хорд, нормалі до хорд [П, §7.1.2].
+        """Contour from given points; collocation points are chord midpoints, normals are chord normals.
 
-        separation — індекси точок відриву (за замовчуванням — кінці); δ за замовчуванням
-        min(L/(2M), 0.95·ℓ_min/2), щоб колокації не потрапляли в коло регуляризації.
+        separation — indices of separation points (default: the two ends). Default δ is
+        min(L/(2M), 0.95·ℓ_min/2) so that collocation points stay outside the regularisation circles.
         """
         x0 = np.asarray(x0, float)
         y0 = np.asarray(y0, float)
         dx, dy = np.diff(x0), np.diff(y0)
         ell = np.hypot(dx, dy)
         if np.any(ell == 0):
-            raise ValueError("у контурі є точки, що збігаються")
+            raise ValueError("contour has coincident points")
         M = len(x0)
         L = ell.sum()
         if delta is None:
@@ -99,15 +94,15 @@ class Contour:
 
     @classmethod
     def polyline(cls, vertices, M, separation="corners", delta=None):
-        """Ламана через вершини, M вузлів: кожна вершина — вузол, кроки ≈ рівні.
+        """Polyline through the vertices with M nodes: every vertex is a node, spacing ≈ uniform.
 
-        separation="corners" — відрив з кінців і всіх внутрішніх вершин (кутових точок);
-        "ends" — лише з кінців; або явний список індексів вузлів.
+        separation="corners" — separation at both ends and every interior vertex (corner);
+        "ends" — at the ends only; or an explicit list of node indices.
         """
         V = np.asarray(vertices, float)
         seg = np.hypot(*np.diff(V, axis=0).T)
         n = np.maximum(1, np.round((M - 1) * seg / seg.sum()).astype(int))
-        n[np.argmax(n)] += (M - 1) - n.sum()             # точно M − 1 відрізків
+        n[np.argmax(n)] += (M - 1) - n.sum()             # exactly M − 1 segments
         pts, nodes = [V[:1]], [0]
         for k in range(len(seg)):
             s = np.linspace(0, 1, n[k] + 1)[1:, None]
@@ -122,11 +117,11 @@ class Contour:
 
     @classmethod
     def segment(cls, a, b, M, delta=None):
-        """Відрізок (пластина) від a до b з M вихорами."""
+        """Straight segment (flat plate) from a to b with M vortices."""
         return cls.polyline([a, b], M, separation="ends", delta=delta)
 
     def normalized(self):
-        """Копія контуру розміру 1 з центром описаного прямокутника в нулі."""
+        """Copy scaled to size 1, with the bounding-box centre at the origin."""
         s = self.size
         c = np.array([(self.x0.max() + self.x0.min()) / 2, (self.y0.max() + self.y0.min()) / 2])
         new = Contour(x0=(self.x0 - c[0]) / s, y0=(self.y0 - c[1]) / s,
@@ -138,40 +133,40 @@ class Contour:
             new.arc = ((cx - c[0]) / s, (cy - c[1]) / s, R / s, t0, t1)
         return new
 
-    # ------------------------------------------------------------------ непроникнення
+    # ------------------------------------------------------------------ no-penetration
     def keep_out(self, x_old, y_old, x_new, y_new):
-        """Непроникнення для рухомих вихорів [П, §7.2.4].
+        """No-penetration for moving free vortices.
 
-        Вихор, що за крок перетнув контур або підійшов до нього ближче за δ, повертається на свій
-        бік на відстань не меншу за δ (дзеркальне відбиття, варіант D на рис. 7.2.16).
+        A vortex that crossed the contour during a step or came closer than δ is returned to its own side
+        at a distance of at least δ (mirror reflection).
         """
         if self.kind == "arc":
             return self._keep_out_arc(x_old, y_old, x_new, y_new)
         return self._keep_out_polyline(x_old, y_old, x_new, y_new)
 
     def _keep_out_arc(self, x_old, y_old, x_new, y_new):
-        """Для дуги: бік — за відстанню до центру, відбиття вздовж радіуса."""
+        """Arc: the side is given by the distance to the centre; reflection is radial."""
         cx, cy, R, t0, t1 = self.arc
         r_old = np.hypot(x_old - cx, y_old - cy)
         r_new = np.hypot(x_new - cx, y_new - cy)
         side = np.where(r_old >= R, 1.0, -1.0)
         gap = r_new - R
         ang = np.arctan2(y_new - cy, x_new - cx)
-        on_arc = np.mod(ang - t0, 2 * np.pi) <= (t1 - t0)       # навпроти дуги
+        on_arc = np.mod(ang - t0, 2 * np.pi) <= (t1 - t0)       # facing the arc
         bad = on_arc & ((np.sign(gap) != side) | (np.abs(gap) < self.delta))
         r_fix = R + side * np.maximum(np.abs(gap), self.delta)
         k = np.where(bad, r_fix / np.maximum(r_new, 1e-12), 1.0)
         return cx + (x_new - cx) * k, cy + (y_new - cy) * k
 
     def _keep_out_polyline(self, x_old, y_old, x_new, y_new):
-        """Для ламаної: бік — за знаком векторного добутку з кожним відрізком."""
+        """Polyline: the side is given by the sign of the cross product with each segment."""
         ell = self.ell
         SA = np.column_stack([self.x0[:-1], self.y0[:-1]])
         SD = np.column_stack([np.diff(self.x0), np.diff(self.y0)]) / ell[:, None]
         SN = np.column_stack([self.nx, self.ny])
         po = np.column_stack([x_old, y_old])[:, None, :] - SA[None]
         pn = np.column_stack([x_new, y_new])[:, None, :] - SA[None]
-        d_old = np.einsum("nsk,sk->ns", po, SN)                 # відстань зі знаком
+        d_old = np.einsum("nsk,sk->ns", po, SN)                 # signed distance
         d_new = np.einsum("nsk,sk->ns", pn, SN)
         u_old = np.einsum("nsk,sk->ns", po, SD) / ell
         u_new = np.einsum("nsk,sk->ns", pn, SD) / ell

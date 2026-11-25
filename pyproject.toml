@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "mdo"
 version = "0.1.0"
-description = "Метод дискретних особливостей: стаціонарна (лаб. №1) і нестаціонарна відривна (лаб. №2) течія навколо контуру"
+description = "Method of discrete singularities: steady and unsteady separated 2D flow around a thin contour"
 requires-python = ">=3.9"
 dependencies = ["numpy", "matplotlib"]
 
@@ -16,4 +16,4 @@ test = ["pytest"]
 where = ["src"]
 
 [tool.pytest.ini_options]
-markers = ["slow: довгі тести (повний прогін лаб. №2, кілька хвилин)"]
+markers = ["slow: long tests (full Lab 2 run, a few minutes)"]

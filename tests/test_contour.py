@@ -1,4 +1,4 @@
-"""Контур: дискретизація, нормування, непроникнення для рухомих точок."""
+"""Contour: discretisation, normalisation, no-penetration for moving points."""
 import numpy as np
 
 from mdo import Contour
@@ -14,7 +14,7 @@ def test_semicircle_geometry():
 
 
 def digit_five(M=31):
-    """Контур «5»: планка, стовпчик, дуга; 4 точки відриву (кінці й кути)."""
+    """Digit "5" contour: top bar, stem, arc; 4 separation points (ends and corners)."""
     A, B, C = np.array([0.5, 1.25]), np.array([-0.5, 1.25]), np.array([-0.5, 0.45])
     OC, RC = np.array([0.0, -0.32]), 0.93
     a0 = np.arctan2(C[1] - OC[1], C[0] - OC[0])
@@ -41,23 +41,23 @@ def test_polyline_corners_are_nodes():
 def test_five_normalized():
     c = digit_five()
     assert abs(c.size - 1) < 1e-12 and len(c.separation) == 4
-    assert c.delta < c.ell.min() / 2                             # колокації поза колами δ
+    assert c.delta < c.ell.min() / 2                             # collocation points outside the δ circles
 
 
 def test_keep_out_polyline_blocks_crossing():
-    """Точка, що «перестрибує» відрізок, лишається на своєму боці не ближче δ."""
+    """A point jumping over the segment stays on its side, no closer than δ."""
     c = Contour.segment((0, -0.5), (0, 0.5), 11)
     xo, yo = np.array([-0.1, 0.2]), np.array([0.0, 0.1])
     xn, yn = np.array([0.1, 0.01]), np.array([0.05, 0.1])
     x, y = c.keep_out(xo, yo, xn, yn)
-    assert x[0] <= -c.delta + 1e-12                              # перетнув зліва → лишився зліва
-    assert x[1] >= c.delta - 1e-12                               # впритул справа → відсунутий
+    assert x[0] <= -c.delta + 1e-12                              # crossed from the left -> stays left
+    assert x[1] >= c.delta - 1e-12                               # too close on the right -> pushed out
 
 
 def test_keep_out_arc_blocks_crossing():
     c = Contour.semicircle(24)
     cx, cy, R, *_ = c.arc
-    xo, yo = np.array([cx - 0.8]), np.array([0.0])               # зовні, зліва від дуги
-    xn, yn = np.array([cx - 0.3]), np.array([0.0])               # усередині «чаші»
+    xo, yo = np.array([cx - 0.8]), np.array([0.0])               # outside, left of the arc
+    xn, yn = np.array([cx - 0.3]), np.array([0.0])               # inside the cup
     x, y = c.keep_out(xo, yo, xn, yn)
     assert np.hypot(x - cx, y - cy)[0] >= R + c.delta - 1e-12

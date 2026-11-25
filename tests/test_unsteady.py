@@ -1,4 +1,4 @@
-"""Лаб. №2: інваріанти кроку і відтворення результатів."""
+"""Unsteady problem: step invariants and reproduction of known results."""
 import numpy as np
 import pytest
 
@@ -13,7 +13,7 @@ def test_initial_state_is_lab1_with_zero_circulation():
 
 
 def test_short_run_invariants():
-    """Кельвін, непроникнення, τ = δ/max|V|, вихори не ближче δ до дуги."""
+    """Kelvin, no-penetration, τ = δ/max|V|, no free vortex closer than δ to the arc."""
     c = Contour.semicircle(24)
     sim = Simulation(c).run(3.0, progress=False)
     assert sim.kelvin_residual() < 1e-12
@@ -27,14 +27,14 @@ def test_short_run_invariants():
 
 
 def test_symmetric_until_breakdown():
-    """При α = 0 до зламу симетрії бокова сила нульова (режим II)."""
+    """At α = 0 the side force is zero until the symmetry breaks."""
     sim = Simulation(Contour.semicircle(24)).run(8.0, progress=False)
     t, Cx, Cy, _ = sim.forces()
-    assert np.max(np.abs(Cy[t > 3])) < 1e-3                     # лише шум округлення
+    assert np.max(np.abs(Cy[t > 3])) < 1e-3                     # round-off only
 
 
 def test_any_angle_removal_along_flow():
-    """При α = 1 рад вихори видаляються вздовж потоку — їх кількість обмежена."""
+    """At α = 1 rad vortices are removed along the flow, so their number stays bounded."""
     a = 1.0
     sim = Simulation(Contour.semicircle(24), v_inf=(np.cos(a), np.sin(a)), x_max=3.0)
     sim.run(8.0, progress=False)
@@ -43,7 +43,7 @@ def test_any_angle_removal_along_flow():
 
 
 def test_digit_five_with_absorption():
-    """«5» з 4 точками відриву і поглинанням у «животику»: Кельвін зберігається."""
+    """Digit "5" with 4 separation points and absorption in the cavity: Kelvin holds."""
     c = digit_five()
     sim = Simulation(c, absorb=((0.0, -0.13), 0.25)).run(3.0, progress=False)
     assert sim.kelvin_residual() < 1e-12
@@ -52,7 +52,7 @@ def test_digit_five_with_absorption():
 
 @pytest.mark.slow
 def test_reproduce_lab2():
-    """Повний прогін лаб. №2: 4180 кроків, Cx ≈ 1.36, St ≈ 0.25."""
+    """Full semicircle run to t = 80: 4180 steps, Cx ≈ 1.36, St ≈ 0.25."""
     sim = Simulation(Contour.semicircle(24)).run(80.0, progress=False)
     assert abs(sim.n_steps - 4180) <= 50
     s = sim.summary()

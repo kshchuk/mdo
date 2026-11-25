@@ -1,13 +1,13 @@
-"""Ядра методу дискретних особливостей: швидкість від вихору, сума від багатьох вихорів, кут.
+"""Kernels of the method of discrete singularities.
 
-Формули: швидкість від вихору одиничної інтенсивності (7.1.17), (7.2.24)–(7.2.25) з регуляризацією
-R = max(δ, r) (7.1.18), (7.2.26); круговий арктангенс θ = arg(z − ω)/2π ∈ [0, 1) (7.1.14).
+Velocity of a unit point vortex with regularisation R = max(δ, r), the summed velocity of many vortices,
+and the circular arctangent θ = arg(z − ω)/2π ∈ [0, 1).
 """
 import numpy as np
 
 
 def vortex_velocity(x, y, x0j, y0j, delta=0.0):
-    """(u, v) від вихору Γ = 1 у точці (x0j, y0j) з регуляризацією R ≥ delta."""
+    """(u, v) induced at (x, y) by a vortex of unit strength at (x0j, y0j), with R ≥ delta."""
     dx = x - x0j
     dy = y - y0j
     R2 = np.maximum(dx**2 + dy**2, delta**2)
@@ -15,10 +15,10 @@ def vortex_velocity(x, y, x0j, y0j, delta=0.0):
 
 
 def induced(x, y, xs, ys, gs, delta, chunk=4000):
-    """Сумарна швидкість у точках (x, y) від вихорів (xs, ys) з інтенсивностями gs.
+    """Total velocity at points (x, y) induced by vortices (xs, ys) with strengths gs.
 
-    x, y — масиви будь-якої форми (результат має ту саму форму); точки обробляються шматками,
-    щоб таблиця «точка × вихор» не забивала пам'ять.
+    x, y may have any shape (the result has the same shape). Points are processed in chunks so that the
+    "point × vortex" table does not exhaust memory.
     """
     x = np.asarray(x, float)
     y = np.asarray(y, float)
@@ -37,5 +37,5 @@ def induced(x, y, xs, ys, gs, delta, chunk=4000):
 
 
 def theta(x, y, xs, ys):
-    """Круговий арктангенс (7.1.14): arg(z − ω)/2π у межах [0, 1); розріз — вправо від ω."""
+    """Circular arctangent arg(z − ω)/2π in [0, 1); the branch cut goes to the right of ω."""
     return np.mod(np.arctan2(y - ys, x - xs), 2 * np.pi) / (2 * np.pi)

@@ -1,4 +1,4 @@
-"""Рисунки: контур з колокаціями, чотири графіки полів, вихровий слід."""
+"""Plots: contour discretisation, the four field plots, wake snapshots."""
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -6,16 +6,16 @@ from .fields import flow_box, grid
 
 
 def plot_contour(contour, ax=None, every=1):
-    """Вихори ω0j з колами радіуса δ, колокації, нормалі, точки відриву."""
+    """Vortices ω0j with circles of radius δ, collocation points, normals, separation points."""
     c = contour
     if ax is None:
         _, ax = plt.subplots(figsize=(6, 6))
     for xj, yj in zip(c.x0, c.y0):
         ax.add_patch(plt.Circle((xj, yj), c.delta, fill=False, color="0.6", lw=0.8))
-    ax.plot(c.x0, c.y0, "o-", color="tab:red", ms=3, label="дискретні вихори ω0j")
+    ax.plot(c.x0, c.y0, "o-", color="tab:red", ms=3, label="vortices ω0j")
     ax.plot(c.x0[c.separation], c.y0[c.separation], "s", mfc="none", mec="k", ms=10,
-            label="точки відриву")
-    ax.plot(c.xc, c.yc, "x", color="k", ms=4, label="колокації")
+            label="separation points")
+    ax.plot(c.xc, c.yc, "x", color="k", ms=4, label="collocation points")
     k = slice(None, None, every)
     ax.quiver(c.xc[k], c.yc[k], c.nx[k], c.ny[k], color="tab:green", scale=12, width=0.005)
     ax.set_aspect("equal")
@@ -24,9 +24,9 @@ def plot_contour(contour, ax=None, every=1):
 
 
 def plot_four(solution, xlim=None, ylim=None, n=300, title=None, delta=None):
-    """Чотири графіки: V на тлі |V|, |V| = const, φ = const, ψ = const.
+    """Four plots: V over |V|, |V| = const, φ = const, ψ = const.
 
-    solution — SteadySolution (лаб. №1) або Simulation (лаб. №2, поточний стан).
+    solution — a SteadySolution or a Simulation (current state).
     """
     c = solution.contour
     v_inf = solution.v_inf
@@ -49,7 +49,7 @@ def plot_four(solution, xlim=None, ylim=None, n=300, title=None, delta=None):
                     vmax=np.percentile(speed, 99))
     ax[0, 0].quiver(X[::s, ::s], Y[::s, ::s], (u / speed)[::s, ::s], (v / speed)[::s, ::s],
                     scale=45, width=0.002)
-    ax[0, 0].set_title("1) векторне поле V на тлі |V|")
+    ax[0, 0].set_title("1) velocity field V over |V|")
     for a, F, t, cmap in [(ax[0, 1], speed, "2) |V| = const", "Blues"),
                           (ax[1, 0], phi, "3) φ = const", "RdBu_r"),
                           (ax[1, 1], psi, "4) ψ = const", "RdBu_r")]:
@@ -71,7 +71,7 @@ def plot_four(solution, xlim=None, ylim=None, n=300, title=None, delta=None):
 
 
 def plot_wake(sim, times=None, back=0.6, half=1.6):
-    """Вільні вихори в кілька моментів (синій — γ < 0, червоний — γ > 0), рамка вздовж потоку."""
+    """Free vortices at several times (blue γ < 0, red γ > 0); the frame follows the flow direction."""
     if times is None:
         T = sim.t
         times = [T * f for f in (1 / 16, 1 / 4, 1 / 2, 1)]
@@ -85,5 +85,5 @@ def plot_wake(sim, times=None, back=0.6, half=1.6):
         ax.set_xlim(*xlim)
         ax.set_ylim(*ylim)
         ax.set_title(f"t = {tf:.1f}")
-    fig.suptitle("Вільні вихори: синій — γ < 0 (за год. стрілкою), червоний — γ > 0")
+    fig.suptitle("Free vortices: blue — γ < 0 (clockwise), red — γ > 0")
     return fig

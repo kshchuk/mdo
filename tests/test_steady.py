@@ -1,4 +1,4 @@
-"""Лаб. №1: числа, вже перевірені в гайді й звіті."""
+"""Steady problem: values checked against independent calculations."""
 import numpy as np
 import pytest
 
@@ -12,7 +12,7 @@ V = (1.0, 0.0)
     (1.0, [1.132467, 0.401687, 0.140625, -0.089187, -0.585592], (0.6931, -0.0032, -0.2844, 0.2721)),
 ])
 def test_control_example(g0, G_ref, point_ref):
-    """Контрольний приклад: відрізок, M = 5, точка (−0.5, 0.3), δ = 0.01."""
+    """Reference example: a segment, M = 5, point (−0.5, 0.3), δ = 0.01."""
     s = SteadySolution.solve(Contour.segment((0, -0.5), (0, 0.5), 5), V, g0)
     np.testing.assert_allclose(s.G, G_ref, atol=1e-6)
     x, y = np.array([-0.5]), np.array([0.3])
@@ -23,14 +23,14 @@ def test_control_example(g0, G_ref, point_ref):
 
 @pytest.mark.parametrize("g0", [-1.0, 0.0, 1.0])
 def test_semicircle_slae(g0):
-    """Півколо M = 80: ΣΓ = Γ0 і непроникнення в колокаціях з машинною точністю."""
+    """Semicircle, M = 80: ΣΓ = Γ0 and no-penetration at collocation points to machine precision."""
     s = SteadySolution.solve(Contour.semicircle(80), V, g0)
     assert abs(s.G.sum() - g0) < 1e-12
     assert s.residual() < 1e-12
 
 
 def test_psi_direct_vs_transformed():
-    """ψ за прямою і перетвореною формулами збігаються далі 0.1 від контуру (лаб. №1: 1.8e-4)."""
+    """Direct and transformed ψ agree farther than 0.1 from the contour (expected ~1.8e-4)."""
     c = Contour.semicircle(80)
     s = SteadySolution.solve(c, V, 1.0)
     X, Y = np.meshgrid(np.linspace(-1, 1, 120), np.linspace(-1, 1, 120))
@@ -41,7 +41,7 @@ def test_psi_direct_vs_transformed():
 
 
 def plate_exact(X, Y, gamma, a=0.5):
-    """Точна швидкість для пластини x = 0, |y| ≤ a у потоці (1, 0) з циркуляцією gamma."""
+    """Exact velocity for the plate x = 0, |y| ≤ a in the stream (1, 0) with circulation gamma."""
     zp = -1j * (X + 1j * Y)
     root = np.sqrt(zp - a) * np.sqrt(zp + a)
     dw = np.cos(-np.pi / 2) - 1j * np.sin(-np.pi / 2) * zp / root + gamma / (2j * np.pi * root)
@@ -51,7 +51,7 @@ def plate_exact(X, Y, gamma, a=0.5):
 
 @pytest.mark.parametrize("g0, ref", [(0.0, [0.128, 0.060, 0.029]), (1.0, [0.162, 0.076, 0.037])])
 def test_plate_convergence(g0, ref):
-    """Похибка МДО проти точного розв'язку для пластини спадає ~1/M."""
+    """Error against the exact plate solution decreases as ~1/M."""
     xp = np.linspace(-1, 1, 201)
     X, Y = np.meshgrid(xp, xp)
     mask = np.hypot(X, np.maximum(np.abs(Y) - 0.5, 0)) > 0.15
@@ -67,7 +67,7 @@ def test_plate_convergence(g0, ref):
 
 @pytest.mark.parametrize("g0, tol", [(0.0, 1e-5), (2.0, 1e-3)])
 def test_cylinder(g0, tol):
-    """Коло з розривом 4° (M = 80) проти точного розв'язку для циліндра."""
+    """Circle with a 4° gap (M = 80) against the exact cylinder solution."""
     gap, R = np.radians(4), 0.5
     c = Contour.arc_of_circle((0, 0), R, gap / 2, 2 * np.pi - gap / 2, 80)
     s = SteadySolution.solve(c, V, g0)

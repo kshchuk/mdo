@@ -1,11 +1,11 @@
-"""mdo — метод дискретних особливостей для плоских задач обтікання контуру.
+"""mdo — method of discrete singularities for 2D potential flow around a contour.
 
-Лаб. №1 (стаціонарна течія з циркуляцією Γ0)::
+Steady flow with a prescribed circulation Γ0::
 
     from mdo import Contour, SteadySolution
     sol = SteadySolution.solve(Contour.semicircle(80), v_inf=(1, 0), gamma0=1.0)
 
-Лаб. №2 (нестаціонарна відривна течія, доріжка Кармана)::
+Unsteady separated flow (Kármán vortex street)::
 
     from mdo import Contour, Simulation
     sim = Simulation(Contour.semicircle(24)).run(80)

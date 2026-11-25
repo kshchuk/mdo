@@ -1,4 +1,4 @@
-"""Лаб. №2: нестаціонарна відривна течія — вільні вихори сліду [П, §7.2, §5.2, §6.5.1]."""
+"""Unsteady separated flow with a wake of free vortices (Lab 2)."""
 import time
 
 import numpy as np
@@ -10,15 +10,15 @@ from .steady import influence_matrix
 
 
 class Simulation:
-    """Метод дискретних вихорів з відривом з точок `contour.separation`.
+    """Discrete vortex method with shedding from the points `contour.separation`.
 
-    Один крок (етапи I–IV [П, §6.5.1]): вихори в точках відриву стають вільними,
-    γ^p_{n+1} = Γ_p(t_n) (гіпотеза Кутта–Жуковського [П, §5.2]); швидкості всіх вільних вихорів;
-    τ_n = δ / max|V| (7.2.27); рух усіх, включно з новими (i = 1..n+1, формула (39) слайда 10);
-    непроникнення [П, §7.2.4]; СЛАР (7.2.19)–(7.2.20) з умовою Кельвіна ΣΓ + Σγ = 0.
+    One step: the vortices at the separation points become free, γ^p_{n+1} = Γ_p(t_n)
+    (Kutta–Joukowski hypothesis); velocities of all free vortices; τ_n = δ / max|V| over the free
+    vortices; all vortices move, including the new ones (explicit Euler); no-penetration; then the
+    linear system with Kelvin's condition ΣΓ + Σγ = 0 gives the new bound strengths.
 
-    x_max  — вихори далі цієї відстані вздовж потоку видаляються (циркуляція лишається в обліку);
-    absorb — (центр, радіус): вихори всередині кола поглинаються контуром (для порожнин, як у «5»).
+    x_max  — vortices farther than this along the flow are removed (their circulation stays counted);
+    absorb — (centre, radius): vortices inside this circle are absorbed by the contour (for cavities).
     """
 
     def __init__(self, contour: Contour, v_inf=(1.0, 0.0), x_max=8.0, absorb=None):
@@ -26,18 +26,18 @@ class Simulation:
         self.v_inf = np.asarray(v_inf, float)
         self.x_max = x_max
         self.absorb = absorb
-        self.A_inv = np.linalg.inv(influence_matrix(contour))   # матриця не змінюється в часі
+        self.A_inv = np.linalg.inv(influence_matrix(contour))   # constant in time
         self.fx = self.fy = self.fg = np.empty(0)
-        self.shed_total = 0.0                                   # Σγ усіх відірваних (з видаленими)
+        self.shed_total = 0.0                                   # Σγ of all shed (incl. removed)
         self.t = 0.0
         self.G = self.solve_gammas(self.fx, self.fy, self.fg, 0.0)
         self.history = []                                       # (t, Cx, Cy, N)
         self.frames = []                                        # (t, G, fx, fy, fg)
         self.n_steps = 0
 
-    # ------------------------------------------------------------------ фізика
+    # ------------------------------------------------------------------ physics
     def velocity(self, x, y, G=None, fx=None, fy=None, fg=None):
-        """Швидкість (7.2.22): потік + приєднані вихори + вільні вихори (регуляризовано)."""
+        """Velocity: free stream + bound vortices + free vortices (regularised)."""
         c, d = self.contour, self.contour.delta
         G = self.G if G is None else G
         fx, fy, fg = (self.fx, self.fy, self.fg) if fx is None else (fx, fy, fg)
@@ -46,7 +46,7 @@ class Simulation:
         return self.v_inf[0] + ub + uf, self.v_inf[1] + vb + vf
 
     def solve_gammas(self, fx, fy, fg, shed_total):
-        """Γ1..ΓM з (7.2.19)–(7.2.20): права частина — потік і слід, останній рядок — Кельвін."""
+        """Γ1..ΓM: right-hand side includes the free stream and the wake; last row is Kelvin."""
         c = self.contour
         uf, vf = induced(c.xc, c.yc, fx, fy, fg, c.delta)
         b = np.empty(c.M)
@@ -55,12 +55,12 @@ class Simulation:
         return self.A_inv @ b
 
     def impulse(self, G, fx, fy, fg):
-        """Гідродинамічний імпульс (ділений на ρ): Σ Γ (y, −x) по всіх вихорах."""
+        """Hydrodynamic impulse divided by ρ: Σ Γ (y, −x) over all vortices."""
         c = self.contour
         return np.array([G @ c.y0 + fg @ fy, -(G @ c.x0) - fg @ fx])
 
     def time_step(self, G, fx, fy, fg, shed_total):
-        """Один крок t_n → t_{n+1}; повертає новий стан і τ_n. Стан об'єкта не змінює."""
+        """One step t_n → t_{n+1}; returns the new state and τ_n without modifying the object."""
         c = self.contour
         sep = c.separation
         px = np.append(fx, c.x0[sep])
@@ -73,9 +73,9 @@ class Simulation:
         G = self.solve_gammas(px, py, pg, shed_total)
         return G, px, py, pg, shed_total, dt
 
-    # ------------------------------------------------------------------ цикл
+    # ------------------------------------------------------------------ time loop
     def step(self):
-        """Зробити один крок, записати сили, видалити далекі / поглинути вихори."""
+        """Advance one step, record forces, remove far vortices and absorb trapped ones."""
         P_old = self.impulse(self.G, self.fx, self.fy, self.fg)
         G, fx, fy, fg, shed, dt = self.time_step(self.G, self.fx, self.fy, self.fg,
                                                  self.shed_total)
@@ -89,13 +89,13 @@ class Simulation:
         if self.absorb is not None:
             (ax, ay), ar = self.absorb
             cav = np.hypot(fx - ax, fy - ay) < ar
-            shed -= fg[cav].sum()                    # циркуляція переходить на контур
+            shed -= fg[cav].sum()                    # circulation returns to the contour
             fx, fy, fg = fx[~cav], fy[~cav], fg[~cav]
         self.G, self.fx, self.fy, self.fg, self.shed_total = G, fx, fy, fg, shed
         return dt
 
     def run(self, t_end, frame_dt=0.5, progress=True, every=500):
-        """Крокувати до t_end; кадри кожні frame_dt; статус із часом кожні `every` кроків."""
+        """Step until t_end; store frames every frame_dt; print progress every `every` steps."""
         t0 = time.time()
         if not self.frames:
             self._frame()
@@ -104,44 +104,44 @@ class Simulation:
             if self.t >= len(self.frames) * frame_dt:
                 self._frame()
             if progress and self.n_steps % every == 0:
-                print(f"[{time.time() - t0:6.0f} с] крок {self.n_steps}: t = {self.t:6.2f} / "
-                      f"{t_end:g}, вихорів {len(self.fg)}, dt = {dt:.4f}", flush=True)
+                print(f"[{time.time() - t0:6.0f} s] step {self.n_steps}: t = {self.t:6.2f} / "
+                      f"{t_end:g}, free vortices {len(self.fg)}, dt = {dt:.4f}", flush=True)
         if progress:
-            print(f"готово за {time.time() - t0:.0f} с: {self.n_steps} кроків, t = {self.t:.2f}, "
-                  f"вихорів у сліді {len(self.fg)}")
+            print(f"done in {time.time() - t0:.0f} s: {self.n_steps} steps, t = {self.t:.2f}, "
+                  f"free vortices {len(self.fg)}")
         return self
 
     def _frame(self):
         self.frames.append((self.t, self.G.copy(), self.fx.copy(), self.fy.copy(), self.fg.copy()))
 
     def frame_at(self, t):
-        """Збережений кадр, найближчий до моменту t."""
+        """Stored frame closest to time t."""
         return min(self.frames, key=lambda f: abs(f[0] - t))
 
-    # ------------------------------------------------------------------ поля й аналіз
+    # ------------------------------------------------------------------ fields and analysis
     def kelvin_residual(self):
-        """|ΣΓ + Σγ(у сліді) + Σγ(видалених/поглинених)| — має бути ~1e-15."""
+        """|ΣΓ + Σγ (wake, removed and absorbed)|; should be ~1e-15."""
         return abs(self.G.sum() + self.shed_total)
 
     def phi(self, X, Y):
-        """Потенціал (7.2.38) — пряма формула, з розрізами від вихорів."""
+        """Potential by the direct formula (with branch cuts from the vortices)."""
         c = self.contour
         return fields.phi_direct(X, Y, np.r_[c.x0, self.fx], np.r_[c.y0, self.fy],
                                  np.r_[self.G, self.fg], self.v_inf)
 
     def psi(self, X, Y):
-        """Функція течії (6.4.43) — однозначна, без розрізів."""
+        """Stream function (single-valued, no branch cuts)."""
         c = self.contour
         return fields.psi(X, Y, np.r_[c.x0, self.fx], np.r_[c.y0, self.fy],
                           np.r_[self.G, self.fg], self.v_inf, c.delta)
 
     def forces(self):
-        """Масиви t, Cx, Cy, N з історії."""
+        """Arrays t, Cx, Cy, N from the history."""
         h = np.array(self.history)
         return h[:, 0], h[:, 1], h[:, 2], h[:, 3]
 
     def summary(self, t_from=None, smooth=15):
-        """Середній Cx і число Струхаля (пік спектра згладженого Cy) за t > t_from."""
+        """Mean Cx and Strouhal number (spectral peak of the smoothed Cy) for t > t_from."""
         t, Cx, Cy, _ = self.forces()
         t_from = t[-1] / 2 if t_from is None else t_from
         k = np.ones(smooth) / smooth
